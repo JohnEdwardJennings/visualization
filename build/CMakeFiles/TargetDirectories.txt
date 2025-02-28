@@ -1,0 +1,3 @@
+/home/user/visualization/build/CMakeFiles/Visualization.dir
+/home/user/visualization/build/CMakeFiles/edit_cache.dir
+/home/user/visualization/build/CMakeFiles/rebuild_cache.dir
