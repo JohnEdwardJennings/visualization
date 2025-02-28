@@ -1,1 +1,0 @@
-/usr/bin/c++ CMakeFiles/Visualization.dir/src/main.cpp.o CMakeFiles/Visualization.dir/src/fileInput.cpp.o -o Visualization 
