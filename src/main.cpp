@@ -30,6 +30,7 @@ int parse_vtu(FileInput* fileInput){
   }
 
   // TODO: Parse input file and create a BSpline Geometry from its contents
+  return EXIT_SUCCESS;
 }
 
 /*
@@ -45,6 +46,7 @@ int parse_pickle(FileInput* fileInput){
   }
 
   // TODO: Parse input file and create a BSpline Geometry from its contents
+  return EXIT_SUCCESS;
 }
 
 /*
@@ -60,4 +62,5 @@ int parse_txt(FileInput* fileInput){
   }
 
   // TODO: Parse input file and create a BSpline Geometry from its contents
+  return EXIT_SUCCESS;
 }
