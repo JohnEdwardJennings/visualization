@@ -1,12 +1,12 @@
 #include <string>
 class FileInput {
-public:
-  FileInput() {}
+    public:
+      FileInput() {}
 
-  FileInput(std::string stringToRead) : filename(stringToRead) {}
+      FileInput(std::string stringToRead) : filename(stringToRead) {}
 
-  std::string getFilename() { return filename; }
+      std::string getFilename() { return filename; }
 
-private:
-  std::string filename;
+    private:
+      std::string filename;
 };
