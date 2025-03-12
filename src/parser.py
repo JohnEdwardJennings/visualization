@@ -1,7 +1,7 @@
 import vtk
 import pickle
 
-# TODO: Create a '.json' file to store data
+# TODO: Create a '.json' file to store data (New return value)
 
 # Method is used to parse standard format ".vtu" files for BSpline Data
 def parse_vtu(file_path):
@@ -57,7 +57,7 @@ def parse_txt(file_path):
 # This method should be the only method called by other files
 #
 # pre: file_path != NULL, file_path is a parsable file for this program
-# post: Returns a dictionary containing BSpline Data extracted from file_path
+# post: Returns a dictionary containing BSpline Data extracted from file_path.
 #       Keys are Control Points, Knots, and Degree. Returns error message if a 
 #       non parsable file was input as a parameter
 def parse_file(file_path):
