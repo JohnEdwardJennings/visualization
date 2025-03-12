@@ -1,9 +1,12 @@
 import vtk
 import pickle
 
+# TODO: Create a '.json' file to store data
+
 # Method is used to parse standard format ".vtu" files for BSpline Data
 def parse_vtu(file_path):
     # TODO: Don't Really know how to properly gather data from a ".vtu" file
+    # TODO: Install Mesh.io and use built in functions to parse files
 
     reader = vtk.vtkXMLUnstructuredGridReader()
     reader.SetFileName(file_path)
@@ -30,6 +33,7 @@ def parse_pickle(file_path):
 # Method is used to parse a ".txt" file for BSpline Data
 # Expected Formatting of file is as follows:
 #
+# TODO: Allow for multiple dimensions (Each line may have more thant 1 number)
 # Line 1: c - Number of Control Points
 # Line 2: k - Number of Knots
 # Next n lines: Control Points (Each line contains 1 control point)
@@ -50,7 +54,7 @@ def parse_txt(file_path):
 
 
 # Main method of this file
-# This method should the only method called by other files
+# This method should be the only method called by other files
 #
 # pre: file_path != NULL, file_path is a parsable file for this program
 # post: Returns a dictionary containing BSpline Data extracted from file_path
