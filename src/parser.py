@@ -2,6 +2,8 @@ import xml.etree.ElementTree as ET
 import pickle
 import json
 
+import argparse
+
 # Parses a .vtu (VTK Unstructured Grid) file to extract B-Spline data and saves it to a JSON file.
 # 
 # The expected structure of the .vtu file is as follows:
@@ -152,6 +154,7 @@ def parse_pickle(file_path):
 # 
 # The method will also save the extracted data into a file called `data.json` in the current directory.
 def parse_txt(file_path):
+    print("print text, file path: " + file_path)
     with open(file_path, "r") as file:
         # Gets the number of control points (c) and knots (k)
         c = int(file.readline().strip())
@@ -189,12 +192,27 @@ def parse_file(file_path):
     elif file_path.endswith(".pickle"):
         return parse_pickle(file_path)
     elif file_path.endswith(".txt"):
+        print("parse file, file path: " + file_path)
         return parse_txt(file_path)
     else:
         return {"error": "Unsupported file format"}
     
 
 ##### DRIVER METHODS #####
+def parse_commands():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-p", "--path", help="Path to file to parse for bspline information")
+    args = parser.parse_args()
+
+    return args
+
+def run_parser():
+    args = parse_commands()
+    parse_file(args.path)
+
+run_parser()
+
 ##### TESTING AREA #####
 
 def test_parser():
@@ -210,4 +228,4 @@ def test_parser():
         print(f"Error while parsing {file}: {e}")
 
 # Run the driver function
-test_parser()
+# test_parser()
