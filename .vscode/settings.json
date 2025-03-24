@@ -43,6 +43,7 @@
         "memory": "cpp",
         "system_error": "cpp",
         "type_traits": "cpp",
-        "algorithm": "cpp"
+        "algorithm": "cpp",
+        "unordered_map": "cpp"
     }
 }
