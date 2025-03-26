@@ -16,4 +16,5 @@ build:
 	mkdir -p build && cd build && cmake .. 
 
 clean: 
-	rm -rf build && rm data.json
+	rm -rf build
+	[ -f data.json ] && rm data.json || true

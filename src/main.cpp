@@ -15,7 +15,7 @@ using BSplineDataDict = std::unordered_map<std::string, json>;
 typedef std::vector<std::vector<double>> IntegerMatrix;
 typedef std::vector<double> IntegerArray;
 
-int extractFileData(BSplineDataDict* data);
+int extractFileData(std::string filepathToExtract, BSplineDataDict* data);
 IntegerMatrix createGlobalPoints(int numNodes[]);
 
 int main(int argc, char **argv) {
