@@ -188,11 +188,13 @@ def parse_file(file_path):
     if file_path is None:
         return {"error": "Parameter is NULL"}
     elif file_path.endswith(".vtu"):
+        print("Parsing file, file path: " + file_path)
         return parse_vtu(file_path)
     elif file_path.endswith(".pickle"):
+        print("Parsing file, file path: " + file_path)
         return parse_pickle(file_path)
     elif file_path.endswith(".txt"):
-        print("parse file, file path: " + file_path)
+        print("Parsing file, file path: " + file_path)
         return parse_txt(file_path)
     else:
         return {"error": "Unsupported file format"}
@@ -212,20 +214,3 @@ def run_parser():
     parse_file(args.path)
 
 run_parser()
-
-##### TESTING AREA #####
-
-def test_parser():
-    file = "data.txt"
-
-    try:
-        print(f"Testing {file}...")
-        result = parse_txt(file)
-        print("Parsed Output:")
-        print(result)
-        print("-" * 40)
-    except Exception as e:
-        print(f"Error while parsing {file}: {e}")
-
-# Run the driver function
-# test_parser()

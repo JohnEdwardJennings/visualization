@@ -44,6 +44,7 @@
         "system_error": "cpp",
         "type_traits": "cpp",
         "algorithm": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "vector": "cpp"
     }
 }
