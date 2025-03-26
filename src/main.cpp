@@ -16,6 +16,7 @@ typedef std::vector<std::vector<double>> IntegerMatrix;
 typedef std::vector<double> IntegerArray;
 
 int extractFileData(BSplineDataDict* data);
+IntegerMatrix createGlobalPoints(int numNodes[]);
 
 int main(int argc, char **argv) {
   // TODO: Send the file path to the python parser
