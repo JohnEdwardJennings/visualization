@@ -13,7 +13,11 @@ include_directories(src)
 
 add_executable(Visualization ${SOURCE_FILES})
 
+add_subdirectory("${PROJECT_SOURCE_DIR}/src/bspline")
+
+target_link_libraries(Visualization PUBLIC BSplineEvaluator)
+
 target_include_directories(Visualization PUBLIC 
   "${PROJECT_BINARY_DIR}" 
-  "${PROJECT_SOURCE_DIR}/ui"
+  "${PROJECT_SOURCE_DIR}/bspline"
   "${PROJECT_SOURCE_DIR}/window")

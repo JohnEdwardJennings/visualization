@@ -1,4 +1,4 @@
-.PHONY: build clean run git_add add_file
+.PHONY: build clean run 
 
 executable_name = "Visualization"
 num_threads = 4

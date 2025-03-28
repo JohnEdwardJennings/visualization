@@ -1,4 +1,5 @@
 #include "json.hpp"
+#include <array>
 #include <codecvt>
 #include <cstdlib>
 #include <fstream>
@@ -7,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "bspline/geometry.h"
 
 // Define a type alias for our json and dictionary
 using json = nlohmann::json;
