@@ -8,7 +8,13 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
+#include <vtkSmartPointer.h>
+#include <vtkXMLUnstructuredGridWriter.h>
+#include <vtkHexahedron.h>
+#include <vtkCommonDataModelModule.h>  
+#include <vtkUnstructuredGrid.h> //Throwing error but still compiles??
+#include <vtkPoints.h>
+#include <vtkCellArray.h>
 #include "bspline/geometry.h"
 
 // Define a type alias for our json and dictionary
@@ -20,6 +26,8 @@ typedef std::vector<double> IntegerArray;
 
 int extractFileData(std::string filepathToExtract, BSplineDataDict* data);
 IntegerMatrix createGlobalPoints(int numNodes[]);
+IntegerMatrix createHexahedronCellsArray(int numNodes[]);
+void generateHexahedralGrid(int numX, int numY, int numZ, const std::string filename);
 
 int main(int argc, char **argv) {
   // Retrieving the file path the of the users file
@@ -65,23 +73,21 @@ int main(int argc, char **argv) {
 
 
 
-  /* ----- TESTING THE "createGlobalPoints" METHOD  ----- */
-  int test[3] = {2, 2, 2};
-  IntegerMatrix globalPoints = createGlobalPoints(test);
-  // USE TO PRINT OUT THE GLOBAL POINTS ARRAY
-  // int globalPointsSize = test[0] * test[1] * test[2];
-  // for(int i = 0; i < globalPointsSize; i++){
-  //   std::cout << "[" << globalPoints[i][0] << ", ";
-  //   std::cout << globalPoints[i][1] << ", ";
-  //   std::cout << globalPoints[i][2] << "]\n";
-  // }
+  /* ----- TESTING NODE ORDERING / MESH CONNECTIVITY  ----- */
 
-	std::array<size_t,2> degrees{2,2};
-	std::array<std::vector<double>, 2> knot_vectors{std::vector<double>{1, 2, 3, 4, 5}, std::vector<double>{1, 2, 3, 4, 5}}; 
-	std::vector<std::array<double, 3>> control_points(25);
-	BSplineGeometry<2,3> b(degrees, knot_vectors, control_points);
-	std::vector<std::array<double,2>> x = {{0, 1}, {2, 3}};
-	b.evaluate(x);
+  int numNodesX = 3;
+  int numNodesY = 2;
+  int numNodesZ = 5;
+  generateHexahedralGrid(numNodesX, numNodesY, numNodesZ, "hexahedral_mesh.vtu");
+
+  /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
+
+	//std::array<size_t,2> degrees{2,2};
+	//std::array<std::vector<double>, 2> knot_vectors{std::vector<double>{1, 2, 3, 4, 5}, std::vector<double>{1, 2, 3, 4, 5}}; 
+	//std::vector<std::array<double, 3>> control_points(25);
+	//BSplineGeometry<2,3> b(degrees, knot_vectors, control_points);
+	//std::vector<std::array<double,2>> x = {{0, 1}, {2, 3}};
+	//b.evaluate(x);
 
   return 0;
 }
@@ -144,5 +150,115 @@ IntegerMatrix createGlobalPoints(int numNodes[]){
       }
     }
 
+    // Decrement each number by 1 to undo what I did earlier 
+    numNodes[0] -= 1;
+    numNodes[1] -= 1;
+    numNodes[2] -= 1;
+
     return grid;
+}
+
+IntegerMatrix createHexahedronCellsArray(int numNodes[]){
+  int numPointsX = numNodes[0];
+  int numPointsY = numNodes[1];
+  int numPointsZ = numNodes[2];
+  int zBase = numNodes[2] + 1;
+  int yBase = zBase * (numNodes[1] + 1);
+
+  // Number of hexahedron cells
+  int totalCells = numPointsX  * numPointsY  * numPointsZ;
+  IntegerMatrix grid(totalCells, IntegerArray(8));  // Each hexahedron has 8 points
+  int count = 0;
+
+  for (int i = 0; i < numPointsZ; i++) {  // Loop through x dimension
+    for (int j = 0; j < numPointsX; j++) {  // Loop through y dimension
+      for (int k = 0; k < numPointsY; k++) {  // Loop through z dimension
+        
+        // Calculate the indices of the 8 points of the hexahedron
+        grid[count][0] = i + (yBase * j) + (zBase * k);
+        grid[count][1] = grid[count][0] + yBase;
+        grid[count][2] = grid[count][1] + zBase;
+        grid[count][3] = i + zBase + (yBase * j) + (zBase * k);
+        grid[count][4] = grid[count][0] + 1;
+        grid[count][5] = grid[count][1] + 1;
+        grid[count][6] = grid[count][2] + 1;
+        grid[count][7] = grid[count][3] + 1;
+
+        count++;
+      }
+    }
+  }
+
+  return grid;
+}
+
+void generateHexahedralGrid(int numX, int numY, int numZ, const std::string filename){
+  int numNodes[3] = {numX, numY, numZ};
+
+  // Global Points Array Creation
+  int globalArrayLength = (numX + 1) * (numY + 1) * (numZ + 1);
+  IntegerMatrix globalPoints = createGlobalPoints(numNodes);
+  /* USE TO PRINT OUT THE GLOBAL POINTS ARRAY */
+  std::cout << "------------------------------------" << std::endl;
+  std::cout << "Global Points Array" << std::endl;
+   for(int i = 0; i < globalArrayLength; i++){
+     std::cout << "[" << globalPoints[i][0] << ", ";
+     std::cout << globalPoints[i][1] << ", ";
+     std::cout << globalPoints[i][2] << "]\n";
+   }
+  std::cout << "------------------------------------" << std::endl;
+
+  vtkSmartPointer<vtkUnstructuredGrid> grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+  // Create VTK points container and fill it out with global points
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  for(int i = 0; i < globalArrayLength; i++){
+    points->InsertNextPoint(globalPoints[i][0], globalPoints[i][1], globalPoints[i][2]);
+  }
+  grid->SetPoints(points);
+
+  // Cell Points Array Creation 
+  int cellArrayLength = numX * numY * numZ;
+  IntegerMatrix cellPoints = createHexahedronCellsArray(numNodes);
+  /* USE TO PRINT OUT THE GLOBAL POINTS ARRAY */
+  std::cout << "------------------------------------" << std::endl;
+  std::cout << "Cell Points Array" << std::endl;
+  for(int i = 0; i < cellArrayLength; i++){
+     std::cout << "[" << cellPoints[i][0] << ", ";
+     std::cout << cellPoints[i][1] << ", ";
+     std::cout << cellPoints[i][2] << ", ";
+     std::cout << cellPoints[i][3] << ", ";
+     std::cout << cellPoints[i][4] << ", ";
+     std::cout << cellPoints[i][5] << ", ";
+     std::cout << cellPoints[i][6] << ", ";
+     std::cout << cellPoints[i][7] << "]\n";
+  }
+  std::cout << "------------------------------------" << std::endl;
+
+  // Create hexahedral cells
+  vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
+  for(int i = 0; i < cellArrayLength; i++){
+    vtkSmartPointer<vtkHexahedron> hexahedron = vtkSmartPointer<vtkHexahedron>::New();
+
+    hexahedron->GetPointIds()->SetId(0, cellPoints[i][0]);  // Front-bottom-left
+    hexahedron->GetPointIds()->SetId(1, cellPoints[i][1]);  // Front-bottom-right
+    hexahedron->GetPointIds()->SetId(2, cellPoints[i][2]);  // Back-bottom-right
+    hexahedron->GetPointIds()->SetId(3, cellPoints[i][3]);  // Back-bottom-left
+    hexahedron->GetPointIds()->SetId(4, cellPoints[i][4]);  // Front-top-left
+    hexahedron->GetPointIds()->SetId(5, cellPoints[i][5]);  // Front-top-right
+    hexahedron->GetPointIds()->SetId(6, cellPoints[i][6]);  // Back-top-right
+    hexahedron->GetPointIds()->SetId(7, cellPoints[i][7]);  // Back-top-left
+
+    cells->InsertNextCell(hexahedron);
+  }
+  grid->SetCells(VTK_HEXAHEDRON, cells);
+
+  // Write to a .vtu file
+  vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+  writer->SetFileName(filename.c_str());
+  writer->SetInputData(grid);
+  writer->Write();
+
+  std::cout << "VTU file saved as: " << filename << std::endl;
+
 }

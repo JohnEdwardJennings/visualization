@@ -24,3 +24,4 @@ build:
 clean: 
 	rm -rf build
 	[ -f data.json ] && rm data.json || true
+	[ -f hexahedral_mesh.vtu ] && rm hexahedral_mesh.vtu || true

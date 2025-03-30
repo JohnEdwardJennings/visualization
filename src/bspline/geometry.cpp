@@ -6,6 +6,6 @@ int main() {
 	std::vector<std::array<double, 3>> control_points(25);
 	BSplineGeometry<2,3> b(degrees, knot_vectors, control_points);
 	std::vector<std::array<double,2>> x = {{0, 1}, {2, 3}};
-	b.evaluate(x);
+	//b.evaluate(x);
 	return 0;
 }
