@@ -75,9 +75,9 @@ int main(int argc, char **argv) {
 
   /* ----- TESTING NODE ORDERING / MESH CONNECTIVITY  ----- */
 
-  int numNodesX = 3;
-  int numNodesY = 2;
-  int numNodesZ = 5;
+  int numNodesX = 7;
+  int numNodesY = 4;
+  int numNodesZ = 9;
   generateHexahedralGrid(numNodesX, numNodesY, numNodesZ, "hexahedral_mesh.vtu");
 
   /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
