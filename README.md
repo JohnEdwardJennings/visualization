@@ -8,3 +8,5 @@ To add more files to build system, modify CMakeLists.txt, search for src/main.cp
 Dependencies
 Install these before trying make run.
 https://docs.vtk.org/en/latest/getting_started/using_cpp.html
+
+Make sure to have virtual environment installed and activate the virtual environment (source .venv/bin/activate).

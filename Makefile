@@ -21,6 +21,12 @@ test:
 build:
 	mkdir -p build && cd build && cmake .. 
 
+install: 
+	pip install -r requirements.txt
+
+test: 
+	python3 -m unittest discover tests	
+
 clean: 
 	rm -rf build
 	[ -f data.json ] && rm data.json || true
