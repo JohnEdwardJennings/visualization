@@ -4,108 +4,6 @@ import json
 
 import argparse
 
-# Parses a .vtu (VTK Unstructured Grid) file to extract B-Spline data and saves it to a JSON file.
-# 
-# The expected structure of the .vtu file is as follows:
-# 
-# 1. **<Points> Section**:
-#     - The <Points> section contains the control points of the B-Spline.
-#     - The control points are stored in a <DataArray> tag with the attribute `Name="Points"`.
-#     - The attribute `NumberOfComponents` specifies the number of dimensions each control point has (e.g., 3 for 3D, 4 for 4D, etc.).
-#     - The control points are stored as space-separated values in the text content of the <DataArray> tag.
-#     - Each point's coordinates are grouped in sets based on the value of `NumberOfComponents`.
-#     - Example:
-#         <Points>
-#             <DataArray type="Float32" Name="Points" NumberOfComponents="3" format="ascii">
-#                 0.0 0.0 0.0
-#                 1.0 0.0 0.0
-#                 1.0 1.0 0.0
-#                 0.0 1.0 0.0
-#             </DataArray>
-#         </Points>
-# 
-# 2. **<CellData> Section**:
-#     - The <CellData> section contains auxiliary data associated with the cells (e.g., knots, degree).
-#     
-#     2.1 **Knots**:
-#         - The knots array is stored in a <DataArray> tag with the attribute `Name="Knots"`.
-#         - Knots are stored as space-separated values in the text content of the <DataArray> tag.
-#         - Example:
-#             <CellData>
-#                 <DataArray type="Float32" Name="Knots" NumberOfComponents="1" format="ascii">
-#                     0.0 0.0 0.0 1.0 1.0 1.0
-#                 </DataArray>
-#             </CellData>
-#     
-#     2.2 **Degree**:
-#         - The degree value is stored in a <DataArray> tag with the attribute `Name="Degree"`.
-#         - The degree is stored as a single integer value.
-#         - Example:
-#             <CellData>
-#                 <DataArray type="Int32" Name="Degree" NumberOfComponents="1" format="ascii">
-#                     3
-#                 </DataArray>
-#             </CellData>
-# 
-# The resulting extracted data will include:
-# - "Control Points": A list of tuples containing the control points.
-# - "Knots": A list of the knot values.
-# - "Degree": The degree value of the B-Spline.
-# 
-# Arguments:
-# - file_path (str): The path to the input .vtu file to be parsed.
-# 
-# Returns:
-# - spline_data (dict): A dictionary containing the extracted B-Spline data, including "Control Points", "Knots", and "Degree".
-# 
-# The method will save the extracted data into a file called `data.json` in the current directory.
-def parse_vtu(file_path):
-    # Parse the .vtu file using xml.etree.ElementTree
-    tree = ET.parse(file_path)
-    root = tree.getroot()
-
-    # Initialize the dictionary to hold our extracted data
-    spline_data = {
-        "Control Points": [],
-        "Knots": [],
-        "Degree": None
-    }
-
-    # Find all the <Points> and extract the control points
-    points_element = root.find(".//Points//DataArray[@Name='Points']")
-    if points_element is not None:
-        # Get the number of components (dimensions)
-        num_components = int(points_element.attrib['NumberOfComponents'])
-        points = points_element.text.strip().split()
-        
-        # Convert the points into a list of tuples based on the number of components
-        spline_data["Control Points"] = [
-            tuple(map(float, points[i:i+num_components])) for i in range(0, len(points), num_components)
-        ]
-
-    # Find all the <CellData> and extract knots and degree
-    cell_data_element = root.find(".//CellData")
-    
-    if cell_data_element is not None:
-        # Extract the knots array
-        knots_element = cell_data_element.find(".//DataArray[@Name='Knots']")
-        if knots_element is not None:
-            knots = list(map(float, knots_element.text.strip().split()))
-            spline_data["Knots"] = knots
-        
-        # Extract the degree value
-        degree_element = cell_data_element.find(".//DataArray[@Name='Degree']")
-        if degree_element is not None:
-            degree = int(degree_element.text.strip())
-            spline_data["Degree"] = degree
-
-    # Dump the dictionary into a JSON file called "data.json"
-    with open("data.json", 'w') as jsonf:
-        json.dump(spline_data, jsonf, indent=4)
-
-    return spline_data
-
-
 # Parses a .pickle file to extract data and saves it to a JSON file.
 # 
 # The expected structure of the .pickle file is as follows:
@@ -187,12 +85,11 @@ def parse_txt(file_path):
 def parse_file(file_path):
     if file_path is None:
         return {"error": "Parameter is NULL"}
-    elif file_path.endswith(".vtu"):
-        return parse_vtu(file_path)
     elif file_path.endswith(".pickle"):
+        print("Parsing file, file path: " + file_path)
         return parse_pickle(file_path)
     elif file_path.endswith(".txt"):
-        print("parse file, file path: " + file_path)
+        print("Parsing file, file path: " + file_path)
         return parse_txt(file_path)
     else:
         return {"error": "Unsupported file format"}
@@ -212,20 +109,3 @@ def run_parser():
     parse_file(args.path)
 
 run_parser()
-
-##### TESTING AREA #####
-
-def test_parser():
-    file = "data.txt"
-
-    try:
-        print(f"Testing {file}...")
-        result = parse_txt(file)
-        print("Parsed Output:")
-        print(result)
-        print("-" * 40)
-    except Exception as e:
-        print(f"Error while parsing {file}: {e}")
-
-# Run the driver function
-# test_parser()
