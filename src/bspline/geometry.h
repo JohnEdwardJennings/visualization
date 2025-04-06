@@ -1,7 +1,9 @@
 #include <cstddef>
 #include <vector>
 #include <array>
-#include <span>
+#include <iostream>
+
+extern void error(char const*);
 
 /*
  * A data structure for holding the parameters for a B-Spline.
@@ -38,13 +40,17 @@ private:
 	 * The information associated with each parametric dimension.
 	 * This includes:
 	 * 	* the degree in that dimension
+	 * 	* the index of the highest nonempty knot span
+	 * 	* the number of control point layers in that dimension
+	 * 		(the degree plus the number of legitimate
+	 * 		 knots, not including padding)
 	 * 	* the vector of knot coordinates along that axis
-	 * 	* the number of knots, excluding any padding knots
 	 */
 	struct param {
 		size_t degree;
-		std::vector<scalar_t> knot_vector;
-		size_t n_knots;	
+		size_t span_cap;
+		size_t n_ctrl;
+		std::vector<scalar_t> knot_vector;		
 	};
 	std::array<param, n_kdims> params;
 	
@@ -88,25 +94,11 @@ private:
 	 */
 	struct scratch_space {
 		size_t offset;
-		scalar_t* store;
+		std::vector<scalar_t> store;
 
-		scratch_space() {}
-
-		scratch_space(std::array<size_t, n_kdims> degrees) {
-			size_t max_degree = 0;
-			for (size_t s = 0; s < n_kdims; s++) {
-				if (degrees[s] > max_degree) {
-					max_degree = degrees[s];
-				}
-			}
-			offset = max_degree + 1;
-			store = new scalar_t[offset * (n_kdims + 1)];
-		}
-		~scratch_space() {
-			delete[] store;
-		}
-		scalar_t* row(size_t index) const {
-			return store + index * offset;
+		std::vector<scalar_t>::iterator row(size_t index) 
+		{
+			return store.begin() + index * offset;
 		}
 	};
 	std::array<scratch_space, n_threads> scratch;
@@ -114,18 +106,111 @@ private:
 public:
 	
 	/* Constructor */
-	BSplineGeometry(std::array<size_t, n_kdims> degrees, 
-				std::array<std::vector<scalar_t>, n_kdims> knot_vectors, 
-				std::vector<ctrl_t> control_points)
+	BSplineGeometry(std::array<size_t, n_kdims> const degrees, 
+				std::array<std::vector<scalar_t>, n_kdims> const knot_vectors, 
+				std::vector<ctrl_t> const control_points)
 	{
+		/* Check that the BSplineGeometry state is valid. */
+
+		/* All knot vectors should be in nonstrictly increasing order. */
 		for (size_t s = 0; s < n_kdims; s++) {
-			params[s] = param{degrees[s], knot_vectors[s], knot_vectors[s].size()};
+			std::vector<scalar_t> const& kv = knot_vectors[s];		
+			for (size_t i = 0; i < kv.size() - 1; i++) {	
+				if (kv[i + 1] < kv[i]) {
+					error("knot vector out of order");
+				}
+			}	
 		}
-		control_points = control_points;
+
+		/* In each dimension, at least one knot span should be nonempty. */
+		for (size_t s = 0; s < n_kdims; s++) {
+			std::vector<scalar_t> const& kv = knot_vectors[s];	
+			if (kv.size() == 0) {
+				error("empty knot vector");
+			}
+			if (kv.front() == kv.back()) {
+				error("no nonempty knot spans");
+			}
+		}
+
+		/*
+		 * The number of control points should equal
+		 * exactly the product across all dimensions of 
+		 * the degree plus the number of (legitimate, 
+		 * not padding) knots, minus one.
+		 */
+		size_t ctrl_sz = 1;
+		for (size_t s = 0; s < n_kdims; s++) {
+			ctrl_sz *= (knot_vectors[s].size() + degrees[s] - 1);
+		}
+		if (control_points.size() != ctrl_sz) {
+			error("incorrect number of control points");
+		}
+		
+		/* Construct the BSpline object */
+
+		for (size_t s = 0; s < n_kdims; s++) {
+			params[s].degree = degrees[s];
+			params[s].n_ctrl = knot_vectors[s].size() + degrees[s] - 1;
+		}
+		this->control_points = control_points;
 		for (size_t z = 0; z < n_threads; z++) {
-			scratch[z] = scratch_space(degrees);
+			size_t max_degree = 0;
+			for (size_t s = 0; s < n_kdims; s++) {
+				if (degrees[s] > max_degree) {
+					max_degree = degrees[s];
+				}
+			}
+			scratch[z].offset = max_degree + 1;
+			scratch[z].store = std::vector<scalar_t>(scratch[z].offset * (n_kdims + 1));
 		}
-		/* Check that the BSplineGeometry state is valid */
+			
+		/* 
+		 * Compute the index of the highest nonempty knot span.
+		 * 
+		 * This is used to handle the edge case of evaluating
+		 * the spline at a parametric point whose coordinate
+		 * lies exactly on the upper edge. Placing the point in an
+		 * empty knot span (which might happen if the two highest
+		 * non-padding knots are identical) would cause division by 
+		 * zero, so when finding the knot span for such a point we 
+		 * cap the index at the highest nonempty knot span.
+		 */
+		for (size_t s = 0; s < n_kdims; s++) {
+			std::vector<scalar_t> const& kv = knot_vectors[s];
+			if (kv.size() == 0) {
+				error("empty knot vector");
+			}
+			size_t max_span = kv.size() - 2;
+			scalar_t last_knot = kv.back();
+			while (kv[max_span] == last_knot) {
+				max_span--;
+			}
+			params[s].span_cap = max_span + degrees[s];
+		}
+
+		/*
+		 * Insert padding knots at the beginning and end of the spline. 
+		 * 
+		 * This assumes the spline is clamped and may not be the right 
+		 * approach for some types of spline (e.g. periodic).
+		 */
+		for (size_t s = 0; s < n_kdims; s++) {
+			std::vector<scalar_t> const& kv = knot_vectors[s];
+			size_t d = degrees[s], len = kv.size();
+			std::vector<scalar_t> padded(d + len + d);
+			size_t i = 0;
+			for (; i < d; i++) {
+				padded[i] = kv[0];
+			}
+			for (; i < d + len; i++) {
+				padded[i] = kv[i - d];
+			}
+			for (; i < d + len + d; i++) {
+				padded[i] = kv[len - 1];
+			}
+			params[s].knot_vector = padded;
+		}
 	}
 
 	/*
@@ -138,31 +223,31 @@ public:
 	 * single threaded implementations (n_threads = 1)
 	 * the default value of 0 should be used.
 	 */
-	void evaluate(knot_t const& x, ctrl_t& y, size_t tid = 0) const 
+	void evaluate(knot_t const& x, ctrl_t& y, size_t tid = 0) 
 	{
 		// check that x is in bounds in every dimension
 		for (size_t s = 0; s < n_kdims; s++) {
 			if (x[s] < params[s].knot_vector.front() 
 				|| x[s] > params[s].knot_vector.back()) {
-				// TODO report error
+				error("evaluating at out-of-bounds point");
 			}
 		}
 		
-		scratch_space const& space = scratch[tid];
+		scratch_space& space = scratch[tid];
 		std::array<size_t, n_kdims> first, last;
 		for (size_t s = 0; s < n_kdims; s++) {
 			// convenience variables
 			scalar_t u = x[s];
 			size_t p = params[s].degree;
-		    	std::vector<scalar_t> const& t = params[s].knot_vector;
-			size_t l = t.size();
-
+		    	size_t l = params[s].span_cap;
+			std::vector<scalar_t> const& t = params[s].knot_vector;
+			
 			/*
 			 * Find the knot span in which u lies.
 			 * This is an interval [t_j,t_{j+1}) such that
 			 * t_j <= u < t_{j+1}.
 			 *
-			 * We avoid the cases j < p or j >= l - p - 1,
+			 * We avoid the cases j < p or j >= l,
 			 * because these knot spans are empty
 			 * and used only for padding. In the case
 			 * where u equals the maximum knot value,
@@ -174,15 +259,20 @@ public:
 			 * We use the binary search algorithm,
 			 * since the knot vectors are sorted.
 			 */
-			size_t j, lo = p, hi = l - p - 1;
-			while (true) {
-				j = (lo + hi) / 2;
-				if (t[j] <= u) {
-					if (j == l - p - 2) break;
-					if (t[j + 1] <= u) lo = j + 1;
-					else break;
+			size_t j, lo = p, hi = l;
+			std::cout << lo << " " << hi << "\n";
+			if (u == t.back()) {
+				j = l;	
+			}
+			else {
+				while (true) {
+					j = (lo + hi) / 2;
+					if (t[j] <= u) {
+						if (t[j + 1] <= u) lo = j + 1;
+						else break;
+					}
+					else hi = j - 1;
 				}
-				else hi = j;
 			}
 			first[s] = j - p;
 			last[s] = j;
@@ -204,7 +294,7 @@ public:
 			 * basis functions as weights for multiple 
 			 * control points in dimension k >= 2.
 			 */
-			scalar_t *B = space.row(s), *C = space.row(n_kdims);
+			std::vector<scalar_t>::iterator B = space.row(s), C = space.row(n_kdims);
 			if (p % 2 == 1) {
 				std::swap(B,C);
 			}
@@ -246,24 +336,26 @@ public:
 		// level variable for backtracking
 		size_t s = 0;
 		while (true) {
-			/* 'Push' stage.
+			/*
+			 * 'Push' stage.
 			 * Compute and store indices and weights recursively. 
 			 */
 			do {
-				istack[s + 1] = pos[s] - params[s].degree + params[s].n_knots * istack[s];
+				istack[s + 1] = pos[s] - params[s].degree + params[s].n_ctrl * istack[s];
 				bstack[s + 1] = space.row(s)[pos[s] - first[s]] * bstack[s];
 				s++;	
 			} while (s < n_kdims);
 
 			/* Main computation */
-			size_t I = istack[s + 1];
-			scalar_t B = bstack[s + 1];
+			size_t I = istack[s];
+			scalar_t B = bstack[s];
 			ctrl_t const& ctrl_pt = control_points[I];
 			for (size_t r = 0; r < n_cdims; r++) {
 				y[r] += B * ctrl_pt[r];
 			}
 
-			/* 'Pop' stage.
+			/*
+			 * 'Pop' stage.
 			 * Update position, check exit conditions for each level
 			 * and for the entire algorithm, and reset  
 			 */
@@ -283,7 +375,7 @@ public:
 	 * The input x is mapped to a vector y such that for all
 	 * valid indices i of x, y[i] is the spline evaluated at x[i].
 	 */
-	std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x) const
+	std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x)
 	{
 		std::vector<ctrl_t> y{x.size()};
 		for (auto xi = x.begin(), yi = y.begin(); xi != x.end(); ++xi, ++yi) {
@@ -295,11 +387,11 @@ public:
 
 /* Explicit instantiation of BSplineGeometries for dimensions 1,2,3. */
 typedef BSplineGeometry<1,1> BSplineGeometry_1D_1D;
-typedef BSplineGeometry<1,2> BSplineGeometry_1D_2D; 
+/* typedef BSplineGeometry<1,2> BSplineGeometry_1D_2D; 
 typedef BSplineGeometry<1,3> BSplineGeometry_1D_3D;
 typedef BSplineGeometry<2,1> BSplineGeometry_2D_1D;
 typedef BSplineGeometry<2,2> BSplineGeometry_2D_2D;
 typedef BSplineGeometry<2,3> BSplineGeometry_2D_3D;
 typedef BSplineGeometry<3,1> BSplineGeometry_3D_1D;
 typedef BSplineGeometry<3,2> BSplineGeometry_3D_2D;
-typedef BSplineGeometry<3,3> BSplineGeometry_3D_3D;
+typedef BSplineGeometry<3,3> BSplineGeometry_3D_3D;*/

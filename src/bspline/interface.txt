@@ -1,0 +1,28 @@
+template <size_t n_kdims, size_t n_cdims, size_t n_threads = 1>
+class BSplineGeometry {
+	/* Constructor */
+	BSplineGeometry(std::array<size_t, n_kdims> const degrees, 
+				std::array<std::vector<scalar_t>, n_kdims> const knot_vectors,
+				std::vector<ctrl_t> const control_points);
+	
+	/*
+	 * Evaluate the spline at a parametric point x.
+	 * Store the result in y.
+	 *
+	 * tid is an optional argument specifying a unique
+	 * identification number (with 0 <= tid < n_threads)
+	 * for the thread doing this evaluation. In
+	 * single threaded implementations (n_threads = 1)
+	 * the default value of 0 should be used.
+	 */
+	void evaluate(knot_t const& x, ctrl_t& y, size_t tid = 0) const;
+	
+	/*
+	 * Map operation.
+	 * Compute the spline at a collection of parametric points.
+	 *
+	 * The input x is mapped to a vector y such that for all
+	 * valid indices i of x, y[i] is the spline evaluated at x[i].
+	 */
+	std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x) const;
+}

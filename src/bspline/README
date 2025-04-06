@@ -1,0 +1,8 @@
+This folder contains code that implements a C++ representation of BSpline data.
+This includes a function for evaluating the spline at parametric points.
+
+Files:
+~ geometry.h: the (template) code for the BSpline itself
+~ interface.txt: a version of geometry.h stripped of the implementation details
+~ geometry.cpp: testing code
+~ Makefile: running 'make test' builds and runs the 'geometry' executable
