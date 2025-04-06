@@ -15,7 +15,7 @@ class BSplineGeometry {
 	 * single threaded implementations (n_threads = 1)
 	 * the default value of 0 should be used.
 	 */
-	void evaluate(knot_t const& x, ctrl_t& y, size_t tid = 0) const;
+	void evaluate(knot_t const& x, ctrl_t& y, size_t tid = 0);
 	
 	/*
 	 * Map operation.
@@ -24,5 +24,5 @@ class BSplineGeometry {
 	 * The input x is mapped to a vector y such that for all
 	 * valid indices i of x, y[i] is the spline evaluated at x[i].
 	 */
-	std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x) const;
+	std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x);
 }
