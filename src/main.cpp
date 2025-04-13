@@ -13,9 +13,10 @@
 #include <vtkCellArray.h>
 #include <vtkCommonDataModelModule.h>
 #include <vtkHexahedron.h>
+#include <vtkLine.h>
 #include <vtkPoints.h>
 #include <vtkSmartPointer.h>
-#include <vtkUnstructuredGrid.h> //Throwing error but still compiles??
+#include <vtkUnstructuredGrid.h>
 #include <vtkXMLUnstructuredGridWriter.h>
 
 #include "bsplineData.h"
@@ -32,8 +33,11 @@ IntegerMatrix createGlobalPoints(int numNodes[]);
 IntegerMatrix createHexahedronCellsArray(int numNodes[]);
 void generateHexahedralGrid(int numX, int numY, int numZ,
                             const std::string filename);
+void generateWireframe(int numX, int numY, int numZ,
+                            const std::string filename);
 
 int getDegree(BSplineDataDict bsplineData);
+int upSample = 4;
 
 int main(int argc, char **argv) {
   // Retrieving the file path the of the users file
@@ -89,10 +93,11 @@ int main(int argc, char **argv) {
 
   /* ----- TESTING NODE ORDERING / MESH CONNECTIVITY  ----- */
 
-  int numNodesX = 3;
-  int numNodesY = 2;
+  int numNodesX = 5;
+  int numNodesY = 5;
   int numNodesZ = 5;
-  generateHexahedralGrid(numNodesX, numNodesY, numNodesZ, "hexahedral_mesh.vtu");
+  generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
+  generateWireframe(numNodesX, numNodesY, numNodesZ, "wireframe_mesh.vtu");
 
   /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
 
@@ -192,14 +197,12 @@ IntegerMatrix createHexahedronCellsArray(int numNodes[]) {
 
   // Number of hexahedron cells
   int totalCells = numPointsX * numPointsY * numPointsZ;
-  IntegerMatrix grid(totalCells,
-                     IntegerArray(8)); // Each hexahedron has 8 points
+  IntegerMatrix grid(totalCells, IntegerArray(8)); // Each hexahedron has 8 points
   int count = 0;
 
   for (int i = 0; i < numPointsZ; i++) {     // Loop through x dimension
     for (int j = 0; j < numPointsX; j++) {   // Loop through y dimension
       for (int k = 0; k < numPointsY; k++) { // Loop through z dimension
-
         // Calculate the indices of the 8 points of the hexahedron
         grid[count][0] = i + (yBase * j) + (zBase * k);
         grid[count][1] = grid[count][0] + yBase;
@@ -218,6 +221,7 @@ IntegerMatrix createHexahedronCellsArray(int numNodes[]) {
   return grid;
 }
 
+// TODO: Split up code into different methods serving different functionalities
 void generateHexahedralGrid(int numX, int numY, int numZ,
                             const std::string filename) {
   int numNodes[3] = {numX, numY, numZ};
@@ -226,14 +230,14 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
   int globalArrayLength = (numX + 1) * (numY + 1) * (numZ + 1);
   IntegerMatrix globalPoints = createGlobalPoints(numNodes);
   /* USE TO PRINT OUT THE GLOBAL POINTS ARRAY */
-  std::cout << "------------------------------------" << std::endl;
-  std::cout << "Global Points Array" << std::endl;
-  for (int i = 0; i < globalArrayLength; i++) {
-    std::cout << "[" << globalPoints[i][0] << ", ";
-    std::cout << globalPoints[i][1] << ", ";
-    std::cout << globalPoints[i][2] << "]\n";
-  }
-  std::cout << "------------------------------------" << std::endl;
+  // std::cout << "------------------------------------" << std::endl;
+  // std::cout << "Global Points Array" << std::endl;
+  // for (int i = 0; i < globalArrayLength; i++) {
+  //   std::cout << "[" << globalPoints[i][0] << ", ";
+  //   std::cout << globalPoints[i][1] << ", ";
+  //   std::cout << globalPoints[i][2] << "]\n";
+  // }
+  // std::cout << "------------------------------------" << std::endl;
 
   vtkSmartPointer<vtkUnstructuredGrid> grid =
       vtkSmartPointer<vtkUnstructuredGrid>::New();
@@ -249,20 +253,20 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
   // Cell Points Array Creation
   int cellArrayLength = numX * numY * numZ;
   IntegerMatrix cellPoints = createHexahedronCellsArray(numNodes);
-  /* USE TO PRINT OUT THE GLOBAL POINTS ARRAY */
-  std::cout << "------------------------------------" << std::endl;
-  std::cout << "Cell Points Array" << std::endl;
-  for (int i = 0; i < cellArrayLength; i++) {
-    std::cout << "[" << cellPoints[i][0] << ", ";
-    std::cout << cellPoints[i][1] << ", ";
-    std::cout << cellPoints[i][2] << ", ";
-    std::cout << cellPoints[i][3] << ", ";
-    std::cout << cellPoints[i][4] << ", ";
-    std::cout << cellPoints[i][5] << ", ";
-    std::cout << cellPoints[i][6] << ", ";
-    std::cout << cellPoints[i][7] << "]\n";
-  }
-  std::cout << "------------------------------------" << std::endl;
+  // /* USE TO PRINT OUT THE GLOBAL POINTS ARRAY */
+  // std::cout << "------------------------------------" << std::endl;
+  // std::cout << "Cell Points Array" << std::endl;
+  // for (int i = 0; i < cellArrayLength; i++) {
+  //   std::cout << "[" << cellPoints[i][0] << ", ";
+  //   std::cout << cellPoints[i][1] << ", ";
+  //   std::cout << cellPoints[i][2] << ", ";
+  //   std::cout << cellPoints[i][3] << ", ";
+  //   std::cout << cellPoints[i][4] << ", ";
+  //   std::cout << cellPoints[i][5] << ", ";
+  //   std::cout << cellPoints[i][6] << ", ";
+  //   std::cout << cellPoints[i][7] << "]\n";
+  // }
+  // std::cout << "------------------------------------" << std::endl;
 
   // Create hexahedral cells
   vtkSmartPointer<vtkCellArray> cells = vtkSmartPointer<vtkCellArray>::New();
@@ -291,4 +295,164 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
   writer->Write();
 
   std::cout << "VTU file saved as: " << filename << std::endl;
+}
+
+void generateWireframe(int numX, int numY, int numZ,
+                            const std::string filename){
+    // Objects to be stored in the resulting ".vtu" file
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkUnstructuredGrid> grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+
+    // Create global points and insert them into the ".vtu" file
+    int numNodes[3] = {numX * upSample, numY * upSample, numZ * upSample};
+    int globalArrayLength = (numNodes[0] + 1) * (numNodes[1] + 1) * (numNodes[2] + 1);
+    IntegerMatrix globalPoints = createGlobalPoints(numNodes);
+    for (int i = 0; i < globalArrayLength; i++) {
+    points->InsertNextPoint(globalPoints[i][0], globalPoints[i][1],
+                            globalPoints[i][2]);
+    }
+    grid->SetPoints(points);
+
+    // Connect all points along X-axis @ numZ interval (@ y == 0 && y == 1)
+    for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
+      int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
+      for(int j = 0; j < numZ; j++){ // numZ interval
+        int z_offset = (j * numZ);
+        int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
+        for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
+          int pointIndex1 = y_offset + z_offset + (x_offset * k);
+          int pointIndex2 = pointIndex1 + x_offset;
+
+          // Create a line between 2 points
+          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+          line->GetPointIds()->SetId(1, pointIndex2);
+
+          // Insert line into lines Cell Array
+          lines->InsertNextCell(line);
+        }
+      }
+    }
+
+
+    // Connect all points along X-axis @ numY interval (@ z == 0 && z == 1)
+    for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
+      int z_offset = (i * numNodes[2]);
+      for(int j = 1; j < numY - 1; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
+        int y_offset = (j * (numY * (numNodes[2] + 1)));
+        int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
+        for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
+          int pointIndex1 = y_offset + z_offset + (x_offset * k);
+          int pointIndex2 = pointIndex1 + x_offset;
+
+          // Create a line between 2 points
+          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+          line->GetPointIds()->SetId(1, pointIndex2);
+
+          // Insert line into lines Cell Array
+          lines->InsertNextCell(line);
+        }
+      }
+    }
+
+
+    //TODO: Connect all points along Y-axis @ numX interval (@ z == 0 && z == 1)
+    for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
+      int z_offset = (i * numNodes[2]);
+      for(int j = 0; j < numX; j++){ // numX interval
+        int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+        int y_offset = (numNodes[2] + 1);
+        for(int k = 0; k < numNodes[1]; k++){
+          int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
+          int pointIndex2 = pointIndex1 + y_offset;
+
+          // Create a line between 2 points
+          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+          line->GetPointIds()->SetId(1, pointIndex2);
+
+          // Insert line into lines Cell Array
+          lines->InsertNextCell(line);
+        }
+      }
+    }
+
+
+    //TODO: Connect all points along Y-axis @ numZ interval (@ x == 0 && x == 1)
+    for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
+      int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
+      for(int j = 1; j < numZ - 1; j++){ // numZ interval (Start and end slightly different to prevent re-doing edge lines)
+        int z_offset = (j * numZ);
+        int y_offset = (numNodes[2] + 1);
+        for(int k = 0; k < numNodes[1]; k++){
+          int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
+          int pointIndex2 = pointIndex1 + y_offset;
+
+          // Create a line between 2 points
+          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+          line->GetPointIds()->SetId(1, pointIndex2);
+
+          // Insert line into lines Cell Array
+          lines->InsertNextCell(line);
+        }
+      }
+    }
+
+
+    //TODO: Connect all points along Z-axis @ numX interval (@ y == 0 && y == 1)
+    for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
+      int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
+      for(int j = 0; j < numX; j++){ // numX interval
+        int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+        int z_offset = 0;
+        for(int k = 0; k < numNodes[1]; k++){
+          int pointIndex1 = y_offset + (z_offset + k) + x_offset;
+          int pointIndex2 = pointIndex1 + 1;
+
+          // Create a line between 2 points
+          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+          line->GetPointIds()->SetId(1, pointIndex2);
+
+          // Insert line into lines Cell Array
+          lines->InsertNextCell(line);
+        }
+      }
+    }
+
+
+    //TODO: Connect all points along Z-axis @ numY interval (@ x == 0 && x == 1)
+    for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
+      int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
+      for(int j = 1; j < numY - 1; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
+        int y_offset = (j * (numY * (numNodes[2] + 1)));
+        int z_offset = 0;
+        for(int k = 0; k < numNodes[1]; k++){
+          int pointIndex1 = y_offset + (z_offset + k) + x_offset;
+          int pointIndex2 = pointIndex1 + 1;
+
+          // Create a line between 2 points
+          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+          line->GetPointIds()->SetId(1, pointIndex2);
+
+          // Insert line into lines Cell Array
+          lines->InsertNextCell(line);
+        }
+      }
+    }
+
+
+    grid->SetCells(VTK_LINE, lines);
+
+    // Write to VTU
+    vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+    writer->SetFileName("wireframe_lines.vtu");
+    writer->SetInputData(grid);
+    writer->Write();
+
+    std::cout << "Wireframe VTU file created.\n";
 }

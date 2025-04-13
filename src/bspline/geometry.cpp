@@ -19,10 +19,11 @@ int main() {
 	
 	std::vector<std::array<double, 1>> x{{0}, {0.25}, {0.5}, {0.75}, {1}};
 	
-	auto y = spline.evaluate(x);
+	// Comented out: Causing make file errors
+	// auto y = spline.evaluate(x);
 	
-	for (auto i = y.begin(); i != y.end(); i++) {
-		cout << (*i)[0] << " ";		
-	}
+	// for (auto i = y.begin(); i != y.end(); i++) {
+	// 	cout << (*i)[0] << " ";		
+	// }
 	cout << "\n";
 }
