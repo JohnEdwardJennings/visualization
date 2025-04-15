@@ -5,6 +5,17 @@
 
 extern void error(char const*);
 
+class BSpline {
+/*
+public:
+	BSpline() = delete;
+
+	virtual void evaluate(knot_t const& x, ctrl_t& y, size_t tid = 0) = 0;
+	
+	virtual std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x) = 0;
+*/
+};
+
 /*
  * A data structure for holding the parameters for a B-Spline.
  * Includes degrees, knot vectors, and control points.
@@ -13,7 +24,7 @@ extern void error(char const*);
  * are passed as arguments to the evaluate() functions.
  */
 template <size_t n_kdims, size_t n_cdims, size_t n_threads = 1>
-class BSplineGeometry {
+class BSplineGeometry : public BSpline {
 private:
 	/*
 	 * The type of scalars (coordinates of knots and control points).
@@ -260,7 +271,6 @@ public:
 			 * since the knot vectors are sorted.
 			 */
 			size_t j, lo = p, hi = l;
-			std::cout << lo << " " << hi << "\n";
 			if (u == t.back()) {
 				j = l;	
 			}
@@ -342,6 +352,8 @@ public:
 			 */
 			do {
 				istack[s + 1] = pos[s] - params[s].degree + params[s].n_ctrl * istack[s];
+				cout << ""I << ;
+				cout << "" << ;
 				bstack[s + 1] = space.row(s)[pos[s] - first[s]] * bstack[s];
 				s++;	
 			} while (s < n_kdims);
@@ -387,11 +399,11 @@ public:
 
 /* Explicit instantiation of BSplineGeometries for dimensions 1,2,3. */
 typedef BSplineGeometry<1,1> BSplineGeometry_1D_1D;
-/* typedef BSplineGeometry<1,2> BSplineGeometry_1D_2D; 
+typedef BSplineGeometry<1,2> BSplineGeometry_1D_2D; 
 typedef BSplineGeometry<1,3> BSplineGeometry_1D_3D;
 typedef BSplineGeometry<2,1> BSplineGeometry_2D_1D;
 typedef BSplineGeometry<2,2> BSplineGeometry_2D_2D;
 typedef BSplineGeometry<2,3> BSplineGeometry_2D_3D;
 typedef BSplineGeometry<3,1> BSplineGeometry_3D_1D;
 typedef BSplineGeometry<3,2> BSplineGeometry_3D_2D;
-typedef BSplineGeometry<3,3> BSplineGeometry_3D_3D;*/
+typedef BSplineGeometry<3,3> BSplineGeometry_3D_3D;
