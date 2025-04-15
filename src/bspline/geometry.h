@@ -126,7 +126,7 @@ public:
 		/* All knot vectors should be in nonstrictly increasing order. */
 		for (size_t s = 0; s < n_kdims; s++) {
 			std::vector<scalar_t> const& kv = knot_vectors[s];		
-			for (size_t i = 0; i < kv.size() - 1; i++) {	
+			for (size_t i = 0; i + 1 < kv.size(); i++) {	
 				if (kv[i + 1] < kv[i]) {
 					error("knot vector out of order");
 				}
@@ -306,7 +306,7 @@ public:
 			 */
 			std::vector<scalar_t>::iterator B = space.row(s), C = space.row(n_kdims);
 			if (p % 2 == 1) {
-				std::swap(B,C);
+				std::swap(B, C);
 			}
 			B[p] = 1;
 			for (size_t q = 1; q <= p; q++) {
@@ -334,7 +334,7 @@ public:
 		
 		// position in knot grid
 		std::array<size_t, n_kdims> pos = first;
-		
+
 		// stack of 'prefix indices' for the control array
 		// the top (last element) is the actual index
 		std::array<size_t, n_kdims + 1> istack{0};
@@ -351,9 +351,7 @@ public:
 			 * Compute and store indices and weights recursively. 
 			 */
 			do {
-				istack[s + 1] = pos[s] - params[s].degree + params[s].n_ctrl * istack[s];
-				cout << ""I << ;
-				cout << "" << ;
+				istack[s + 1] = pos[s] + params[s].n_ctrl * istack[s];
 				bstack[s + 1] = space.row(s)[pos[s] - first[s]] * bstack[s];
 				s++;	
 			} while (s < n_kdims);

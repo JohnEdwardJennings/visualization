@@ -80,4 +80,81 @@ int main()
 		cout << "\n";
 	}
 
+	{
+		/* n_kdims = 3, n_cdims = 3, degree = 0 */
+		std::array<size_t, 3> degrees{0, 0, 0};
+		std::vector<double> x_knots{0, 0.33, 0.67, 1};
+		std::vector<double> y_knots{0, 0.33, 0.67, 1};
+		std::vector<double> z_knots{0, 0.33, 0.67, 1};
+		std::array<std::vector<double>, 3> knots{x_knots, y_knots, z_knots};
+		std::vector<std::array<double, 3>> control_points {	
+			{100, 10, 1}, {100, 10, 2}, {100, 10, 3}, {100, 20, 1}, {100, 20, 2}, {100, 20, 3}, {100, 30, 1}, {100, 30, 2}, {100, 30, 3},
+			{200, 10, 1}, {200, 10, 2}, {200, 10, 3}, {200, 20, 1}, {200, 20, 2}, {200, 20, 3}, {200, 30, 1}, {200, 30, 2}, {200, 30, 3},
+			{300, 10, 1}, {300, 10, 2}, {300, 10, 3}, {300, 20, 1}, {300, 20, 2}, {300, 20, 3}, {300, 30, 1}, {300, 30, 2}, {300, 30, 3}
+		};
+		auto spline = BSplineGeometry<3,3>(degrees, knots, control_points);
+		
+		std::vector<std::array<double, 3>> x{{1, 0.5, 0}, {0.5, 0, 1}, {0, 1, 0.5}};
+		
+		auto y = spline.evaluate(x);
+		
+		for (auto i = y.begin(); i != y.end(); i++) {
+			cout << "(" << (*i)[0] << ", " << (*i)[1] << ", " << (*i)[2] <<  ")" << " ";		
+		}
+		cout << "\n";
+	}
+	
+	{
+		/* n_kdims = 1, n_cdims = 1, degree = 1 */
+		std::array<size_t, 1> degrees{1};
+		std::vector<double> _knots{0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1};
+		std::array<std::vector<double>, 1> knots{_knots};
+		std::vector<std::array<double, 1>> control_points{{1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}};
+		auto spline = BSplineGeometry<1,1>(degrees, knots, control_points);
+		
+		std::vector<std::array<double, 1>> x{{0}, {0.125}, {0.25}, {0.5}, {0.75}, {1}};
+		
+		auto y = spline.evaluate(x);
+		
+		for (auto i = y.begin(); i != y.end(); i++) {
+			cout << (*i)[0] << " ";		
+		}
+		cout << "\n";
+	}
+	
+	{
+		/* n_kdims = 1, n_cdims = 1, degree = 2 */
+		std::array<size_t, 1> degrees{2};
+		std::vector<double> _knots{0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1};
+		std::array<std::vector<double>, 1> knots{_knots};
+		std::vector<std::array<double, 1>> control_points{{1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}};
+		auto spline = BSplineGeometry<1,1>(degrees, knots, control_points);
+		
+		std::vector<std::array<double, 1>> x{{0}, {0.125}, {0.25}, {0.5}, {0.75}, {1}};
+		
+		auto y = spline.evaluate(x);
+		
+		for (auto i = y.begin(); i != y.end(); i++) {
+			cout << (*i)[0] << " ";		
+		}
+		cout << "\n";
+	}
+	
+	{
+		/* n_kdims = 1, n_cdims = 1, degree = 10 */
+		std::array<size_t, 1> degrees{10};
+		std::vector<double> _knots{0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1};
+		std::array<std::vector<double>, 1> knots{_knots};
+		std::vector<std::array<double, 1>> control_points{{1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}, {1}};
+		auto spline = BSplineGeometry<1,1>(degrees, knots, control_points);
+		
+		std::vector<std::array<double, 1>> x{{0}, {0.125}, {0.25}, {0.5}, {0.75}, {1}};
+		
+		auto y = spline.evaluate(x);
+		
+		for (auto i = y.begin(); i != y.end(); i++) {
+			cout << (*i)[0] << " ";		
+		}
+		cout << "\n";
+	}
 }
