@@ -45,6 +45,7 @@
         "type_traits": "cpp",
         "algorithm": "cpp",
         "unordered_map": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "array": "cpp"
     }
 }
