@@ -37,7 +37,7 @@ void generateWireframe(int numX, int numY, int numZ,
                             const std::string filename);
 
 int getDegree(BSplineDataDict bsplineData);
-int upSample = 4;
+int upSample = 20;
 
 int main(int argc, char **argv) {
   // Retrieving the file path the of the users file
