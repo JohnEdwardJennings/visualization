@@ -14,7 +14,7 @@ public:
 	
 	virtual std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x) = 0;
 */
-};
+}; 
 
 /*
  * A data structure for holding the parameters for a B-Spline.
@@ -117,9 +117,9 @@ private:
 public:
 	
 	/* Constructor */
-	BSplineGeometry(std::array<size_t, n_kdims> const degrees, 
-				std::array<std::vector<scalar_t>, n_kdims> const knot_vectors, 
-				std::vector<ctrl_t> const control_points)
+	BSplineGeometry(std::array<size_t, n_kdims> const& degrees, 
+				std::array<std::vector<scalar_t>, n_kdims> const& knot_vectors, 
+				std::vector<ctrl_t> const& control_points)
 	{
 		/* Check that the BSplineGeometry state is valid. */
 
@@ -388,7 +388,9 @@ public:
 	std::vector<ctrl_t> evaluate(std::vector<knot_t> const& x)
 	{
 		std::vector<ctrl_t> y{x.size()};
-		for (auto xi = x.begin(), yi = y.begin(); xi != x.end(); ++xi, ++yi) {
+		auto xi = x.begin();
+		auto yi = y.begin();
+		for (; xi != x.end(); ++xi, ++yi) {
 			evaluate(*xi, *yi);
 		}
 		return y;
