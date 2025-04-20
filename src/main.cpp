@@ -93,9 +93,9 @@ int main(int argc, char **argv) {
 
   /* ----- TESTING NODE ORDERING / MESH CONNECTIVITY  ----- */
 
-  int numNodesX = 5;
-  int numNodesY = 5;
-  int numNodesZ = 5;
+  int numNodesX = 3;
+  int numNodesY = 3;
+  int numNodesZ = 3;
   generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
   generateWireframe(numNodesX, numNodesY, numNodesZ, "wireframe_mesh.vtu");
 
@@ -317,8 +317,8 @@ void generateWireframe(int numX, int numY, int numZ,
     // Connect all points along X-axis @ numZ interval (@ y == 0 && y == 1)
     for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
       int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
-      for(int j = 0; j < numZ; j++){ // numZ interval
-        int z_offset = (j * numZ);
+      for(int j = 0; j < numZ + 1; j++){ // numZ interval
+        int z_offset = (j * upSample);
         int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
         for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
           int pointIndex1 = y_offset + z_offset + (x_offset * k);
@@ -339,8 +339,8 @@ void generateWireframe(int numX, int numY, int numZ,
     // Connect all points along X-axis @ numY interval (@ z == 0 && z == 1)
     for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
       int z_offset = (i * numNodes[2]);
-      for(int j = 1; j < numY - 1; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
-        int y_offset = (j * (numY * (numNodes[2] + 1)));
+      for(int j = 1; j < numY; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
+        int y_offset = (j * (upSample * (numNodes[2] + 1)));
         int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
         for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
           int pointIndex1 = y_offset + z_offset + (x_offset * k);
@@ -358,11 +358,11 @@ void generateWireframe(int numX, int numY, int numZ,
     }
 
 
-    //TODO: Connect all points along Y-axis @ numX interval (@ z == 0 && z == 1)
+    // Connect all points along Y-axis @ numX interval (@ z == 0 && z == 1)
     for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
       int z_offset = (i * numNodes[2]);
-      for(int j = 0; j < numX; j++){ // numX interval
-        int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+      for(int j = 0; j < numX + 1; j++){ // numX interval
+        int x_offset = (j * upSample * ((numNodes[1] + 1) * (numNodes[2] + 1)));
         int y_offset = (numNodes[2] + 1);
         for(int k = 0; k < numNodes[1]; k++){
           int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
@@ -380,11 +380,11 @@ void generateWireframe(int numX, int numY, int numZ,
     }
 
 
-    //TODO: Connect all points along Y-axis @ numZ interval (@ x == 0 && x == 1)
+    // Connect all points along Y-axis @ numZ interval (@ x == 0 && x == 1)
     for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
       int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
-      for(int j = 1; j < numZ - 1; j++){ // numZ interval (Start and end slightly different to prevent re-doing edge lines)
-        int z_offset = (j * numZ);
+      for(int j = 1; j < numZ; j++){ // numZ interval (Start and end slightly different to prevent re-doing edge lines)
+        int z_offset = (j * upSample);
         int y_offset = (numNodes[2] + 1);
         for(int k = 0; k < numNodes[1]; k++){
           int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
@@ -402,11 +402,11 @@ void generateWireframe(int numX, int numY, int numZ,
     }
 
 
-    //TODO: Connect all points along Z-axis @ numX interval (@ y == 0 && y == 1)
+    // Connect all points along Z-axis @ numX interval (@ y == 0 && y == 1)
     for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
       int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
-      for(int j = 0; j < numX; j++){ // numX interval
-        int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+      for(int j = 0; j < numX + 1; j++){ // numX interval
+        int x_offset = (j * upSample * ((numNodes[1] + 1) * (numNodes[2] + 1)));
         int z_offset = 0;
         for(int k = 0; k < numNodes[1]; k++){
           int pointIndex1 = y_offset + (z_offset + k) + x_offset;
@@ -424,11 +424,11 @@ void generateWireframe(int numX, int numY, int numZ,
     }
 
 
-    //TODO: Connect all points along Z-axis @ numY interval (@ x == 0 && x == 1)
+    // Connect all points along Z-axis @ numY interval (@ x == 0 && x == 1)
     for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
       int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
-      for(int j = 1; j < numY - 1; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
-        int y_offset = (j * (numY * (numNodes[2] + 1)));
+      for(int j = 1; j < numY; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
+        int y_offset = (j * (upSample * (numNodes[2] + 1)));
         int z_offset = 0;
         for(int k = 0; k < numNodes[1]; k++){
           int pointIndex1 = y_offset + (z_offset + k) + x_offset;
