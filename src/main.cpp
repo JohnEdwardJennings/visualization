@@ -93,10 +93,10 @@ int main(int argc, char **argv) {
 
   /* ----- TESTING NODE ORDERING / MESH CONNECTIVITY  ----- */
 
-  int numNodesX = 3;
+  int numNodesX = 5;
   int numNodesY = 3;
-  int numNodesZ = 3;
-  generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
+  int numNodesZ = 2;
+  //generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
   generateWireframe(numNodesX, numNodesY, numNodesZ, "wireframe_mesh.vtu");
 
   /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
@@ -315,113 +315,113 @@ void generateWireframe(int numX, int numY, int numZ,
     grid->SetPoints(points);
 
     // Connect all points along X-axis @ numZ interval (@ y == 0 && y == 1)
-    for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
-      int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
-      for(int j = 0; j < numZ + 1; j++){ // numZ interval
-        int z_offset = (j * upSample);
-        int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
-        for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
-          int pointIndex1 = y_offset + z_offset + (x_offset * k);
-          int pointIndex2 = pointIndex1 + x_offset;
+     for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
+       int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
+       for(int j = 0; j < numZ + 1; j++){ // numZ interval
+         int z_offset = (j * upSample);
+         int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
+         for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
+           int pointIndex1 = y_offset + z_offset + (x_offset * k);
+           int pointIndex2 = pointIndex1 + x_offset;
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
+           // Create a line between 2 points
+           vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+           line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+           line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
-      }
-    }
+           // Insert line into lines Cell Array
+           lines->InsertNextCell(line);
+         }
+       }
+     }
 
 
     // Connect all points along X-axis @ numY interval (@ z == 0 && z == 1)
-    for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
-      int z_offset = (i * numNodes[2]);
-      for(int j = 1; j < numY; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
-        int y_offset = (j * (upSample * (numNodes[2] + 1)));
-        int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
-        for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
-          int pointIndex1 = y_offset + z_offset + (x_offset * k);
-          int pointIndex2 = pointIndex1 + x_offset;
+     for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
+       int z_offset = (i * numNodes[2]);
+       for(int j = 1; j < numY; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
+         int y_offset = (j * (upSample * (numNodes[2] + 1)));
+         int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
+         for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
+           int pointIndex1 = y_offset + z_offset + (x_offset * k);
+           int pointIndex2 = pointIndex1 + x_offset;
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
+           // Create a line between 2 points
+           vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+           line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+           line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
-      }
-    }
+           // Insert line into lines Cell Array
+           lines->InsertNextCell(line);
+         }
+       }
+     }
 
 
     // Connect all points along Y-axis @ numX interval (@ z == 0 && z == 1)
-    for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
-      int z_offset = (i * numNodes[2]);
-      for(int j = 0; j < numX + 1; j++){ // numX interval
-        int x_offset = (j * upSample * ((numNodes[1] + 1) * (numNodes[2] + 1)));
-        int y_offset = (numNodes[2] + 1);
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
-          int pointIndex2 = pointIndex1 + y_offset;
+     for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
+       int z_offset = (i * numNodes[2]);
+       for(int j = 0; j < numX + 1; j++){ // numX interval
+         int x_offset = (j * upSample * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+         int y_offset = (numNodes[2] + 1);
+         for(int k = 0; k < numNodes[1]; k++){
+           int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
+           int pointIndex2 = pointIndex1 + y_offset;
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
+           // Create a line between 2 points
+           vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+           line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+           line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
-      }
-    }
+           // Insert line into lines Cell Array
+           lines->InsertNextCell(line);
+         }
+       }
+     }
 
 
     // Connect all points along Y-axis @ numZ interval (@ x == 0 && x == 1)
-    for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
-      int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
-      for(int j = 1; j < numZ; j++){ // numZ interval (Start and end slightly different to prevent re-doing edge lines)
-        int z_offset = (j * upSample);
-        int y_offset = (numNodes[2] + 1);
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
-          int pointIndex2 = pointIndex1 + y_offset;
+     for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
+       int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
+       for(int j = 1; j < numZ; j++){ // numZ interval (Start and end slightly different to prevent re-doing edge lines)
+         int z_offset = (j * upSample);
+         int y_offset = (numNodes[2] + 1);
+         for(int k = 0; k < numNodes[1]; k++){
+           int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
+           int pointIndex2 = pointIndex1 + y_offset;
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
+           // Create a line between 2 points
+           vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+           line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+           line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
-      }
-    }
+           // Insert line into lines Cell Array
+           lines->InsertNextCell(line);
+         }
+       }
+     }
 
 
     // Connect all points along Z-axis @ numX interval (@ y == 0 && y == 1)
-    for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
-      int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
-      for(int j = 0; j < numX + 1; j++){ // numX interval
-        int x_offset = (j * upSample * ((numNodes[1] + 1) * (numNodes[2] + 1)));
-        int z_offset = 0;
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = y_offset + (z_offset + k) + x_offset;
-          int pointIndex2 = pointIndex1 + 1;
+     for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
+       int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
+       for(int j = 0; j < numX + 1; j++){ // numX interval
+         int x_offset = (j * upSample * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+         int z_offset = 0;
+         for(int k = 0; k < numNodes[2]; k++){
+           int pointIndex1 = y_offset + (z_offset + k) + x_offset;
+           int pointIndex2 = pointIndex1 + 1;
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
+           // Create a line between 2 points
+           vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+           line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+           line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
-      }
-    }
+           // Insert line into lines Cell Array
+           lines->InsertNextCell(line);
+         }
+       }
+     }
 
 
     // Connect all points along Z-axis @ numY interval (@ x == 0 && x == 1)
@@ -430,7 +430,7 @@ void generateWireframe(int numX, int numY, int numZ,
       for(int j = 1; j < numY; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
         int y_offset = (j * (upSample * (numNodes[2] + 1)));
         int z_offset = 0;
-        for(int k = 0; k < numNodes[1]; k++){
+        for(int k = 0; k < numNodes[2]; k++){
           int pointIndex1 = y_offset + (z_offset + k) + x_offset;
           int pointIndex2 = pointIndex1 + 1;
 
