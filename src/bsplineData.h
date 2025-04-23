@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <codecvt>
+#include <cstddef>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -19,9 +20,9 @@ public:
     bsplineData = data;
   }
 
-  int getDegree() {
+  std::vector<size_t> getDegree() {
     if (bsplineData.find("Degree") == bsplineData.end()) {
-      return -1;
+      return std::vector<size_t>();
     }
 
     return bsplineData.at("Degree");
@@ -45,19 +46,24 @@ public:
     return controlPoints;
   }
 
-  std::vector<double> getKnotsVector() {
-    std::vector<double> knotVector;
+  std::vector<std::vector<double>> getKnotsVector() {
+    std::vector<std::vector<double>> knots{};
 
-    for (auto knot : bsplineData["Knots"]) {
-      double knotDouble = static_cast<double>(knot);
+    for (auto knotVector : bsplineData["Knots"]) {
+      std::vector<double> knotDouble =
+          static_cast<std::vector<double>>(knotVector);
 
       knotVector.push_back(knotDouble);
     }
 
-    return knotVector;
+    return knots;
   }
 
-  void printDegrees() { std::cout << "degrees: " << getDegree() << "\n"; }
+  void printDegrees() {
+    for (size_t degree : getDegree()) {
+      std::cout << "degree: " << degree << "\n";
+    }
+  }
 
   void printControlPoints() {
     std::cout << "[";
@@ -73,8 +79,11 @@ public:
 
   void printKnots() {
     std::cout << "knots\n [";
-    for (double knot : getKnotsVector()) {
-      std::cout << knot << ",";
+    for (std::vector<double> knot : getKnotsVector()) {
+      for (double knotValue : knot) {
+        std::cout << knotValue << ",";
+      }
+      std::cout << "\n";
     }
     std::cout << "]\n";
   }

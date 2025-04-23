@@ -1,9 +1,11 @@
 #include "bspline/geometry.h"
 #include "json.hpp"
+#include <algorithm>
 #include <array>
 #include <codecvt>
 #include <cstddef>
 #include <cstdlib>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -34,28 +36,114 @@ IntegerMatrix createHexahedronCellsArray(int numNodes[]);
 void generateHexahedralGrid(int numX, int numY, int numZ,
                             const std::string filename);
 void generateWireframe(int numX, int numY, int numZ,
-                            const std::string filename);
+                       const std::string filename);
 
 int getDegree(BSplineDataDict bsplineData);
 int upSample = 20;
 
+const std::vector<std::string> supportedFileExtensions = {".txt", ".pickle"};
+
 int main(int argc, char **argv) {
+  if (argv == nullptr) {
+    std::cout << "Path to parse is empty, please pass in path" << std::endl;
+    return -1;
+  }
+
   // Retrieving the file path the of the users file
   // File path should be the path to the files that contains BSplineData
+  if (argv[1] == nullptr) {
+    std::cout << "Path to parse is empty, please pass in path" << std::endl;
+    return -1;
+  }
+
   const std::string pathToParse = std::string(argv[1]);
+  std::cout << "path to parse: " << pathToParse << "\n";
   if (pathToParse.empty()) {
     std::cout << "Path to parse is empty, please pass in path" << std::endl;
     return 0;
   }
 
-  // Parses the given file using the python parser
-  const std::string commandToExecute =
-      "python3 ./parser.py --path " + pathToParse;
-  int result = system(commandToExecute.c_str());
+  if (std::filesystem::is_directory(pathToParse)) {
+    std::cout << "Input path is a directory, append --r to recursively parse "
+                 "input files. Ex: Visualization [input path] --r\n";
+  }
 
-  // Failed to run parser
-  if (result != 0) {
-    return -1;
+  // later, potentially expand using flags
+  std::string flags = "";
+
+  const std::string recursiveFlag = "--r";
+  bool isRecursiveParsing = false;
+  if (argv[2] != nullptr) {
+    std::string flags = std::string(argv[2]);
+
+    isRecursiveParsing = !flags.empty() && flags == recursiveFlag;
+  }
+
+  if (flags.length() > 0 && !isRecursiveParsing) {
+    std::cout << "Invalid Flag, only --r for recursive parsing is valid.\n";
+  }
+
+  std::vector<std::string> pathsToProcess{};
+
+  // hard coding output folder for now
+  std::string outputRootPath = "./output";
+  if (!std::filesystem::exists(outputRootPath)) {
+    std::filesystem::create_directories("output");
+  }
+
+  std::cout << "Output root path: " << outputRootPath << "\n";
+
+  if (!outputRootPath.empty() && isRecursiveParsing &&
+      std::filesystem::is_directory(pathToParse)) {
+    // searches through all files in directory, including sub folders
+    for (const auto &dirEntry :
+         std::filesystem::recursive_directory_iterator(pathToParse)) {
+
+      // TODO: for now, just text files, will want to extend to other file types
+      const std::string currentFileExtension =
+          dirEntry.path().extension().string();
+
+      auto extensionIterator =
+          std::find(supportedFileExtensions.begin(),
+                    supportedFileExtensions.end(), currentFileExtension);
+
+      if (dirEntry.is_regular_file() &&
+          extensionIterator != supportedFileExtensions.end()) {
+        pathsToProcess.push_back(dirEntry.path());
+      }
+    }
+  } else if (std::filesystem::is_regular_file(pathToParse)) {
+    pathsToProcess.push_back(pathToParse);
+  }
+
+  // we want to mirror mirror the input folder structure in the output folder
+  // all json files should exist in output folder if specified so
+  for (std::string pathToProcess : pathsToProcess) {
+    std::filesystem::path mirroredOutputPath{outputRootPath};
+    mirroredOutputPath.append(pathToProcess);
+
+    // remove input root to replace with output root
+    int indexOfDivider = pathToProcess.find("/");
+
+    std::string pathWithoutInputRoot = pathToProcess.substr(
+        indexOfDivider + 1, pathToProcess.length() - indexOfDivider - 1);
+
+    pathWithoutInputRoot =
+        std::filesystem::path(pathWithoutInputRoot).replace_extension("json");
+
+    std::string outputPath = outputRootPath + "/" + pathWithoutInputRoot;
+
+    // Parses the given file using the python parser
+    std::cout << "output path: " << outputPath << "\n";
+    const std::string commandToExecute = "python3 ./parser.py --path " +
+                                         pathToProcess + " --output_path " +
+                                         outputPath;
+    int result = system(commandToExecute.c_str());
+
+    // Failed to run parser
+    if (result != 0) {
+      return -1;
+    }
   }
 
   // Once parser.py is comeplete, a new file called 'data.json' is created
@@ -64,18 +152,16 @@ int main(int argc, char **argv) {
   // (unordered_map)
   BSplineDataDict data;
   std::string filepathToExtract = "data.json";
-  result = extractFileData(filepathToExtract, &data);
 
-  // Failed to extract data from ,json
-  if (result != 0) {
+  if (extractFileData(filepathToExtract, &data) != 0) {
     return -1;
   }
 
-  BSplineData structuredBsplingData{data};
+  // BSplineData structuredBsplingData{data};
 
-  structuredBsplingData.printControlPoints();
-  structuredBsplingData.printDegrees();
-  structuredBsplingData.printKnots();
+  // structuredBsplingData.printControlPoints();
+  // structuredBsplingData.printDegrees();
+  // structuredBsplingData.printKnots();
 
   /* ----- Code used to print out the contents of the data BSplineData array
    * ----- */
@@ -96,28 +182,22 @@ int main(int argc, char **argv) {
   int numNodesX = 5;
   int numNodesY = 5;
   int numNodesZ = 5;
-  generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
+  generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample,
+                         numNodesZ * upSample, "hexahedral_mesh.vtu");
   generateWireframe(numNodesX, numNodesY, numNodesZ, "wireframe_mesh.vtu");
 
   /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
 
-  // std::array<size_t, 2> degrees{2, 2};
-  // std::array<std::vector<double>, 2> knot_vectors{std::vector<double>{1, 2,
-  // 3, 4, 5}, std::vector<double>{1, 2, 3, 4, 5}};
-  // std::vector<std::array<double, 3>> control_points(25);
-  // BSplineGeometry<2,3> b(degrees, knot_vectors, control_points);
-  // std::vector<std::array<double,2>> x = {{0, 1}, {2, 3}};
-  // b.evaluate(x);
-
   // Attempt at hooking up data to evaluator
-  // std::array<size_t, 1> degrees{1};
-  // std::array<std::vector<double>, 1> knotVectors{
-  //     structuredBsplingData.getKnotsVector()};
-  // std::vector<std::array<double, 3>> controlPoints(25);
+  const int n_kdims = 1;
+  const int n_cdims = 1;
+  std::vector<size_t> degrees{data.at("Degree")};
+  std::vector<std::vector<scalar_t>> knots{data.at("Knots")};
+  std::vector<ctrl_t> control_points{data.at("Control Points")};
 
-  // BSplineGeometry<1, 3> b{degrees, knotVectors, controlPoints};
-
-  // auto splines = b.evaluate(structuredBsplingData.getKnotsVector());
+  BSplineGeometry bsplineEvaluator{n_kdims, n_cdims, degrees, knots,
+                                   control_points};
+  bsplineEvaluator.evaluate();
 
   return 0;
 }
@@ -197,7 +277,8 @@ IntegerMatrix createHexahedronCellsArray(int numNodes[]) {
 
   // Number of hexahedron cells
   int totalCells = numPointsX * numPointsY * numPointsZ;
-  IntegerMatrix grid(totalCells, IntegerArray(8)); // Each hexahedron has 8 points
+  IntegerMatrix grid(totalCells,
+                     IntegerArray(8)); // Each hexahedron has 8 points
   int count = 0;
 
   for (int i = 0; i < numPointsZ; i++) {     // Loop through x dimension
@@ -298,161 +379,164 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
 }
 
 void generateWireframe(int numX, int numY, int numZ,
-                            const std::string filename){
-    // Objects to be stored in the resulting ".vtu" file
-    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-    vtkSmartPointer<vtkUnstructuredGrid> grid = vtkSmartPointer<vtkUnstructuredGrid>::New();
+                       const std::string filename) {
+  // Objects to be stored in the resulting ".vtu" file
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  vtkSmartPointer<vtkUnstructuredGrid> grid =
+      vtkSmartPointer<vtkUnstructuredGrid>::New();
 
-    // Create global points and insert them into the ".vtu" file
-    int numNodes[3] = {numX * upSample, numY * upSample, numZ * upSample};
-    int globalArrayLength = (numNodes[0] + 1) * (numNodes[1] + 1) * (numNodes[2] + 1);
-    IntegerMatrix globalPoints = createGlobalPoints(numNodes);
-    for (int i = 0; i < globalArrayLength; i++) {
+  // Create global points and insert them into the ".vtu" file
+  int numNodes[3] = {numX * upSample, numY * upSample, numZ * upSample};
+  int globalArrayLength =
+      (numNodes[0] + 1) * (numNodes[1] + 1) * (numNodes[2] + 1);
+  IntegerMatrix globalPoints = createGlobalPoints(numNodes);
+  for (int i = 0; i < globalArrayLength; i++) {
     points->InsertNextPoint(globalPoints[i][0], globalPoints[i][1],
                             globalPoints[i][2]);
-    }
-    grid->SetPoints(points);
+  }
+  grid->SetPoints(points);
 
-    // Connect all points along X-axis @ numZ interval (@ y == 0 && y == 1)
-    for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
-      int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
-      for(int j = 0; j < numZ; j++){ // numZ interval
-        int z_offset = (j * numZ);
-        int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
-        for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
-          int pointIndex1 = y_offset + z_offset + (x_offset * k);
-          int pointIndex2 = pointIndex1 + x_offset;
+  // Connect all points along X-axis @ numZ interval (@ y == 0 && y == 1)
+  for (int i = 0; i <= 1; i++) { // y == 0 and y == 1
+    int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
+    for (int j = 0; j < numZ; j++) { // numZ interval
+      int z_offset = (j * numZ);
+      int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
+      for (int k = 0; k < numNodes[0]; k++) { // all x-points along line
+        int pointIndex1 = y_offset + z_offset + (x_offset * k);
+        int pointIndex2 = pointIndex1 + x_offset;
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
+        // Create a line between 2 points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+        line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
+        // Insert line into lines Cell Array
+        lines->InsertNextCell(line);
       }
     }
+  }
 
+  // Connect all points along X-axis @ numY interval (@ z == 0 && z == 1)
+  for (int i = 0; i <= 1; i++) { // z == 0 and z == 1
+    int z_offset = (i * numNodes[2]);
+    for (int j = 1; j < numY - 1;
+         j++) { // numY interval (Start and end slightly different to prevent
+                // re-doing edge lines)
+      int y_offset = (j * (numY * (numNodes[2] + 1)));
+      int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
+      for (int k = 0; k < numNodes[0]; k++) { // all x-points along line
+        int pointIndex1 = y_offset + z_offset + (x_offset * k);
+        int pointIndex2 = pointIndex1 + x_offset;
 
-    // Connect all points along X-axis @ numY interval (@ z == 0 && z == 1)
-    for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
-      int z_offset = (i * numNodes[2]);
-      for(int j = 1; j < numY - 1; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
-        int y_offset = (j * (numY * (numNodes[2] + 1)));
-        int x_offset = ((numNodes[1] + 1) * (numNodes[2] + 1));
-        for(int k = 0; k < numNodes[0]; k++){ // all x-points along line
-          int pointIndex1 = y_offset + z_offset + (x_offset * k);
-          int pointIndex2 = pointIndex1 + x_offset;
+        // Create a line between 2 points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+        line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
-
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
+        // Insert line into lines Cell Array
+        lines->InsertNextCell(line);
       }
     }
+  }
 
+  // TODO: Connect all points along Y-axis @ numX interval (@ z == 0 && z == 1)
+  for (int i = 0; i <= 1; i++) { // z == 0 and z == 1
+    int z_offset = (i * numNodes[2]);
+    for (int j = 0; j < numX; j++) { // numX interval
+      int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+      int y_offset = (numNodes[2] + 1);
+      for (int k = 0; k < numNodes[1]; k++) {
+        int pointIndex1 = (y_offset * k) + z_offset + x_offset;
+        int pointIndex2 = pointIndex1 + y_offset;
 
-    //TODO: Connect all points along Y-axis @ numX interval (@ z == 0 && z == 1)
-    for(int i = 0; i <= 1; i++){ // z == 0 and z == 1
-      int z_offset = (i * numNodes[2]);
-      for(int j = 0; j < numX; j++){ // numX interval
-        int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
-        int y_offset = (numNodes[2] + 1);
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
-          int pointIndex2 = pointIndex1 + y_offset;
+        // Create a line between 2 points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+        line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
-
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
+        // Insert line into lines Cell Array
+        lines->InsertNextCell(line);
       }
     }
+  }
 
+  // TODO: Connect all points along Y-axis @ numZ interval (@ x == 0 && x == 1)
+  for (int i = 0; i <= 1; i++) { // x == 0 and x == 1
+    int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
+    for (int j = 1; j < numZ - 1;
+         j++) { // numZ interval (Start and end slightly different to prevent
+                // re-doing edge lines)
+      int z_offset = (j * numZ);
+      int y_offset = (numNodes[2] + 1);
+      for (int k = 0; k < numNodes[1]; k++) {
+        int pointIndex1 = (y_offset * k) + z_offset + x_offset;
+        int pointIndex2 = pointIndex1 + y_offset;
 
-    //TODO: Connect all points along Y-axis @ numZ interval (@ x == 0 && x == 1)
-    for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
-      int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
-      for(int j = 1; j < numZ - 1; j++){ // numZ interval (Start and end slightly different to prevent re-doing edge lines)
-        int z_offset = (j * numZ);
-        int y_offset = (numNodes[2] + 1);
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = (y_offset * k)+ z_offset + x_offset;
-          int pointIndex2 = pointIndex1 + y_offset;
+        // Create a line between 2 points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+        line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
-
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
+        // Insert line into lines Cell Array
+        lines->InsertNextCell(line);
       }
     }
+  }
 
+  // TODO: Connect all points along Z-axis @ numX interval (@ y == 0 && y == 1)
+  for (int i = 0; i <= 1; i++) { // y == 0 and y == 1
+    int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
+    for (int j = 0; j < numX; j++) { // numX interval
+      int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
+      int z_offset = 0;
+      for (int k = 0; k < numNodes[1]; k++) {
+        int pointIndex1 = y_offset + (z_offset + k) + x_offset;
+        int pointIndex2 = pointIndex1 + 1;
 
-    //TODO: Connect all points along Z-axis @ numX interval (@ y == 0 && y == 1)
-    for(int i = 0; i <= 1; i++){ // y == 0 and y == 1
-      int y_offset = (i * (numNodes[1] * (numNodes[2] + 1)));
-      for(int j = 0; j < numX; j++){ // numX interval
-        int x_offset = (j * numX * ((numNodes[1] + 1) * (numNodes[2] + 1)));
-        int z_offset = 0;
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = y_offset + (z_offset + k) + x_offset;
-          int pointIndex2 = pointIndex1 + 1;
+        // Create a line between 2 points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+        line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
-
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
+        // Insert line into lines Cell Array
+        lines->InsertNextCell(line);
       }
     }
+  }
 
+  // TODO: Connect all points along Z-axis @ numY interval (@ x == 0 && x == 1)
+  for (int i = 0; i <= 1; i++) { // x == 0 and x == 1
+    int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
+    for (int j = 1; j < numY - 1;
+         j++) { // numY interval (Start and end slightly different to prevent
+                // re-doing edge lines)
+      int y_offset = (j * (numY * (numNodes[2] + 1)));
+      int z_offset = 0;
+      for (int k = 0; k < numNodes[1]; k++) {
+        int pointIndex1 = y_offset + (z_offset + k) + x_offset;
+        int pointIndex2 = pointIndex1 + 1;
 
-    //TODO: Connect all points along Z-axis @ numY interval (@ x == 0 && x == 1)
-    for(int i = 0; i <= 1; i++){ // x == 0 and x == 1
-      int x_offset = (i * ((numNodes[1] + 1) * (numNodes[2] + 1) * numNodes[0]));
-      for(int j = 1; j < numY - 1; j++){ // numY interval (Start and end slightly different to prevent re-doing edge lines)
-        int y_offset = (j * (numY * (numNodes[2] + 1)));
-        int z_offset = 0;
-        for(int k = 0; k < numNodes[1]; k++){
-          int pointIndex1 = y_offset + (z_offset + k) + x_offset;
-          int pointIndex2 = pointIndex1 + 1;
+        // Create a line between 2 points
+        vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
+        line->GetPointIds()->SetId(0, pointIndex1); // start point ID
+        line->GetPointIds()->SetId(1, pointIndex2);
 
-          // Create a line between 2 points
-          vtkSmartPointer<vtkLine> line = vtkSmartPointer<vtkLine>::New();
-          line->GetPointIds()->SetId(0, pointIndex1); // start point ID
-          line->GetPointIds()->SetId(1, pointIndex2);
-
-          // Insert line into lines Cell Array
-          lines->InsertNextCell(line);
-        }
+        // Insert line into lines Cell Array
+        lines->InsertNextCell(line);
       }
     }
+  }
 
+  grid->SetCells(VTK_LINE, lines);
 
-    grid->SetCells(VTK_LINE, lines);
+  // Write to VTU
+  vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer =
+      vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+  writer->SetFileName("wireframe_lines.vtu");
+  writer->SetInputData(grid);
+  writer->Write();
 
-    // Write to VTU
-    vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
-    writer->SetFileName("wireframe_lines.vtu");
-    writer->SetInputData(grid);
-    writer->Write();
-
-    std::cout << "Wireframe VTU file created.\n";
+  std::cout << "Wireframe VTU file created.\n";
 }
