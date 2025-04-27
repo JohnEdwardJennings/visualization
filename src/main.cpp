@@ -37,8 +37,8 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
                             const std::string filename);
 void generateWireframe(int numX, int numY, int numZ,
                             const std::string filename);
-int generateWireframeForFile(const std::string filename, const std::string outputFilename);
-int extractingNecessaryPoints(const std::string filename); // TEMPORARY: Testing extracting certain points
+int generateWireframeForFile(const std::string filename, const std::string output_filename);
+int generateWireframeForFileWithConnectivity(const std::string filename, const std::string output_filename); // TEMPORARY: Testing extracting certain points
 
 int getDegree(BSplineDataDict bsplineData);
 int upSample = 20;
@@ -102,9 +102,8 @@ int main(int argc, char **argv) {
   int numNodesZ = 2;
   //generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
   generateWireframe(numNodesX, numNodesY, numNodesZ, "wireframe_mesh.vtu");
-
-  generateWireframeForFile("quadratic_bspline_example_10x10x4.vtu", "testing.vtu");
-  extractingNecessaryPoints("quadratic_bspline_example_10x10x4.vtu");
+  generateWireframeForFile("quadratic_bspline_example_10x10x4.vtu", "wireframe_mesh_fromFile.vtu");
+  generateWireframeForFileWithConnectivity("quadratic_bspline_example_10x10x4.vtu", "wireframe_mesh_fromFile_connectivity.vtu");
 
   /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
 
@@ -305,7 +304,7 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
 }
 
 void generateWireframe(int numX, int numY, int numZ,
-                            const std::string filename){
+                            const std::string output_filename){
     // Objects to be stored in the resulting ".vtu" file
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -457,14 +456,14 @@ void generateWireframe(int numX, int numY, int numZ,
 
     // Write to VTU
     vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
-    writer->SetFileName("wireframe_lines.vtu");
+    writer->SetFileName(output_filename.c_str());
     writer->SetInputData(grid);
     writer->Write();
 
     std::cout << "Wireframe VTU file created.\n";
 }
 
-int generateWireframeForFile(const std::string filename, const std::string outputFilename) {
+int generateWireframeForFile(const std::string filename, const std::string output_filename) {
     if (!(std::filesystem::exists(filename))) {
         std::cerr << "Error: File '" << filename << "' does not exist." << std::endl;
         return -1;
@@ -661,16 +660,16 @@ int generateWireframeForFile(const std::string filename, const std::string outpu
 
     // Write to the new .vtu file
     vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
-    writer->SetFileName(outputFilename.c_str());
+    writer->SetFileName(output_filename.c_str());
     writer->SetInputData(newUnstructuredGrid);
     writer->Write();
 
-    std::cout << "Successfully written to " << outputFilename << std::endl;
+    std::cout << "Successfully written to " << output_filename << std::endl;
 
     return EXIT_SUCCESS;
 }
 
-int extractingNecessaryPoints(const std::string filename){
+int generateWireframeForFileWithConnectivity(const std::string filename, const std::string output_filename){
   if (!(std::filesystem::exists(filename))) {
         std::cerr << "Error: File '" << filename << "' does not exist." << std::endl;
         return -1;
@@ -722,9 +721,9 @@ int extractingNecessaryPoints(const std::string filename){
   writer->SetInputData(newGrid);
   writer->Write();
 
-  std::cout << "Nodes thing created \n";
+  std::cout << "Extraced connectivity nodes from file \n";
 
-  generateWireframeForFile("extractedNodes.vtu", "new_wireframe.vtu");
+  generateWireframeForFile("extractedNodes.vtu", output_filename);
 
   // TODO: Clean up code and make it more compartamentalized
 
