@@ -38,6 +38,7 @@ void generateHexahedralGrid(int numX, int numY, int numZ,
 void generateWireframe(int numX, int numY, int numZ,
                             const std::string filename);
 int generateWireframeForFile(const std::string filename, const std::string outputFilename);
+int extractingNecessaryPoints(const std::string filename); // TEMPORARY: Testing extracting certain points
 
 int getDegree(BSplineDataDict bsplineData);
 int upSample = 20;
@@ -102,7 +103,8 @@ int main(int argc, char **argv) {
   //generateHexahedralGrid(numNodesX * upSample, numNodesY * upSample, numNodesZ * upSample, "hexahedral_mesh.vtu");
   generateWireframe(numNodesX, numNodesY, numNodesZ, "wireframe_mesh.vtu");
 
-  generateWireframeForFile("/Users/wyattgolden/Desktop/Coding Projects/dirp-visualization/visualization/quadratic_bspline_example_10x10x4.vtu", "testing.vtu");
+  generateWireframeForFile("quadratic_bspline_example_10x10x4.vtu", "testing.vtu");
+  extractingNecessaryPoints("quadratic_bspline_example_10x10x4.vtu");
 
   /* ----- END NODE ORDERING / MESH CONNECTIVITY TESTING ----- */
 
@@ -489,13 +491,9 @@ int generateWireframeForFile(const std::string filename, const std::string outpu
      bool numYFound = false;
      int numZ = 0;
      bool numZFound = false;
-     std::set<double> xSet, ySet, zSet;
       for (int i = 0; i < numPoints; i++) {
           double p[3];
           points->GetPoint(i, p);
-          xSet.insert(p[0]);
-          ySet.insert(p[1]);
-          zSet.insert(p[2]);
           if(p[1] != 0 && !numZFound){
             numZ = i;
             numZFound = true;
@@ -670,4 +668,65 @@ int generateWireframeForFile(const std::string filename, const std::string outpu
     std::cout << "Successfully written to " << outputFilename << std::endl;
 
     return EXIT_SUCCESS;
+}
+
+int extractingNecessaryPoints(const std::string filename){
+  if (!(std::filesystem::exists(filename))) {
+        std::cerr << "Error: File '" << filename << "' does not exist." << std::endl;
+        return -1;
+  }
+
+  // Read the .vtu file
+  vtkSmartPointer<vtkXMLUnstructuredGridReader> reader = vtkSmartPointer<vtkXMLUnstructuredGridReader>::New();
+  reader->SetFileName(filename.c_str());
+  reader->Update();
+
+  // Get the Necessary information (Grid, Points, Connectivity)
+  vtkUnstructuredGrid* unstructuredGrid = reader->GetOutput();
+  vtkPoints* points = unstructuredGrid->GetPoints();
+  /* THE INFO THAT NEEDS TO BE DONE */
+
+  // Extarct Connectivity
+  vtkCellArray* connectivity = unstructuredGrid->GetCells();
+
+  // Create a set of the indecies of points that contribute to connectivity
+  std::set<vtkIdType> pointIndices;
+  for (vtkIdType cellId = 0; cellId < unstructuredGrid->GetNumberOfCells(); ++cellId) {
+    vtkCell* cell = unstructuredGrid->GetCell(cellId);
+    for (vtkIdType i = 0; i < cell->GetNumberOfPoints(); ++i) {
+      pointIndices.insert(cell->GetPointId(i));
+    }
+  }
+  size_t numGlobalPoints = pointIndices.size();
+
+  // Create a global points array of the set size
+  vtkNew<vtkPoints> globalPoints;
+  globalPoints->SetNumberOfPoints(numGlobalPoints);
+
+  // Put the points into the global points array
+  vtkPoints* originalPoints = unstructuredGrid->GetPoints();
+
+  vtkIdType newIdx = 0;
+  for (auto idx : pointIndices) {
+      double point[3];
+      originalPoints->GetPoint(idx, point);
+      globalPoints->SetPoint(newIdx, point);
+      ++newIdx;
+  }
+
+  // Create a .vtu file and store points
+  vtkNew<vtkUnstructuredGrid> newGrid;
+  newGrid->SetPoints(globalPoints);
+  vtkSmartPointer<vtkXMLUnstructuredGridWriter> writer = vtkSmartPointer<vtkXMLUnstructuredGridWriter>::New();
+  writer->SetFileName("extractedNodes.vtu");
+  writer->SetInputData(newGrid);
+  writer->Write();
+
+  std::cout << "Nodes thing created \n";
+
+  generateWireframeForFile("extractedNodes.vtu", "new_wireframe.vtu");
+
+  // TODO: Clean up code and make it more compartamentalized
+
+  return 0;
 }
