@@ -13,6 +13,7 @@ run:
 	make build
 	cp $(file) build
 	cp src/parser.py build
+	cp quadratic_bspline_example_10x10x4.vtu build
 	cd build && make -j $(num_threads) && ./$(executable_name) ./$(file)
 
 test:

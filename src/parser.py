@@ -76,7 +76,7 @@ def parse_txt(file_path, output_path):
         # degree = int(file.readline().strip())
 
     # Creates dictionary with data and puts it into a .json file named "data.json"
-    data = {"Control Points": control_points, "Knots": knots, "Degree": degrees}
+    data = {"Number of Control Points": c, "Control Points": control_points, "Knots": knots, "Degree": degrees}
     with open(output_path, "w") as file:
         json.dump(data, file, indent=4)
     
