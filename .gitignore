@@ -1,2 +1,6 @@
 /build/*
 *.json
+lib/*
+bin/*
+lib64/*
+lib64

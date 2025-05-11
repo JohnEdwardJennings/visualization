@@ -6,6 +6,9 @@ import numpy as np
 
 from bspline_src import bspline_eval
 
+def gold_standard():
+    pass
+
 def run_gold_standard(testcase_folder: str, standard_output_folder: str):
     # expecting a directory with no nested directories
     for root, dirs, files in os.walk(testcase_folder, topdown=False):
